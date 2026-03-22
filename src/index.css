@@ -1,0 +1,4 @@
+/* Global stylesheet that loads Tailwind CSS layers for the app. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
