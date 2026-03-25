@@ -1,8 +1,15 @@
 // This service handles UPI QR image uploads to Cloudinary.
 
-// Replace YOUR_CLOUD_NAME and upload preset with your Cloudinary values.
-const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload'
-const UPLOAD_PRESET = 'YOUR_UPLOAD_PRESET'
+const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+
+if (!cloudName || !UPLOAD_PRESET) {
+  throw new Error(
+    'Missing Cloudinary environment variables: VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_UPLOAD_PRESET'
+  )
+}
+
+const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
 
 // Uploads a QR image to Cloudinary and returns the hosted secure URL.
 export async function uploadQRImage(file) {

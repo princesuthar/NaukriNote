@@ -3,17 +3,33 @@ import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
+const requiredFirebaseEnvKeys = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID',
+]
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const missingFirebaseEnvKeys = requiredFirebaseEnvKeys.filter((key) => !import.meta.env[key])
+
+if (missingFirebaseEnvKeys.length > 0) {
+  throw new Error(
+    `Missing Firebase environment variables: ${missingFirebaseEnvKeys.join(', ')}. Add them to your .env file.`
+  )
+}
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAwAZHfUyTgGPPyNgI76sRkyHMWSYZMTVs",
-  authDomain: "nokrinote.firebaseapp.com",
-  projectId: "nokrinote",
-  storageBucket: "nokrinote.firebasestorage.app",
-  messagingSenderId: "990539364922",
-  appId: "1:990539364922:web:409d960b7da6c8f8225303",
-  measurementId: "G-Q8V5WFKSNK"
-};
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || undefined,
+}
+
 const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 const db = getFirestore(app)
