@@ -1,397 +1,135 @@
-// Mobile-first home page for workers displaying attendance, earnings, and attendance request options.
-import { collection, onSnapshot, query, where } from 'firebase/firestore'
+// Premium worker home page with glassmorphism cards and gradient accents.
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { db } from '../../firebase/firebaseConfig'
-import {
-  getSitesByWorker,
-  getAttendanceByWorker,
-  getPaymentsByWorker,
-  createAttendanceRequest,
-} from '../../services/firestoreService'
-import { getTodayString } from '../../utils/helpers'
+import { getSitesByWorker, getAttendanceByWorker, getPaymentsByWorker, createAttendanceRequest } from '../../services/firestoreService'
 
 function WorkerHomePage() {
   const navigate = useNavigate()
   const { workerProfile, logoutWorker } = useAuth()
-
-  // State management
   const [assignedSites, setAssignedSites] = useState([])
   const [selectedSiteId, setSelectedSiteId] = useState('')
   const [attendanceRecords, setAttendanceRecords] = useState([])
-  const [paymentRecords, setPaymentRecords] = useState([])
-  
-  // Separate state for earnings calculation
   const [presentCount, setPresentCount] = useState(0)
   const [totalEarned, setTotalEarned] = useState(0)
   const [totalPaid, setTotalPaid] = useState(0)
   const [pendingAmount, setPendingAmount] = useState(0)
-  
-  // UI state
   const [requestSent, setRequestSent] = useState(false)
   const [todayRequested, setTodayRequested] = useState(false)
   const [todayApproved, setTodayApproved] = useState(false)
-  const [todayRequestStatus, setTodayRequestStatus] = useState(null) // null, pending, approved, rejected
   const [loading, setLoading] = useState(true)
   const [requesting, setRequesting] = useState(false)
   const [error, setError] = useState('')
 
-  // Format date to "Today: Monday, 26 March 2025" format
-  const getFormattedDate = () => {
-    const today = new Date()
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-    return `Today: ${today.toLocaleDateString('en-IN', options)}`
-  }
+  const fmt = (a) => `₹${Number(a || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+  const today = () => new Date().toISOString().split('T')[0]
 
-  // Check if attendance was requested/approved for today
-  const checkTodayAttendance = (records, siteId) => {
-    const today = new Date().toISOString().split('T')[0]
-    const todayRecord = records.find(
-      (r) => r.date === today && r.siteId === siteId
-    )
-
-    if (todayRecord) {
-      if (todayRecord.status === 'present' || todayRecord.status === 'approved') {
-        setTodayApproved(true)
-        setTodayRequested(false)
-      } else if (todayRecord.status === 'pending') {
-        setTodayRequested(true)
-        setTodayApproved(false)
-      }
-    } else {
-      setTodayRequested(false)
-      setTodayApproved(false)
-    }
-  }
-
-  // Load all data
   useEffect(() => {
-    async function loadData() {
-      if (!workerProfile) return
-      try {
-        setLoading(true)
-        setError('')
-
-        const [sites, attendance, payments] = await Promise.all([
-          getSitesByWorker(workerProfile.id),
-          getAttendanceByWorker(workerProfile.id),
-          getPaymentsByWorker(workerProfile.id),
-        ])
-
-        setAssignedSites(sites)
-        setAttendanceRecords(attendance)
-        setPaymentRecords(payments)
-
-        // Calculate stats
-        const present = attendance.filter((r) => r.status === 'present')
-        setPresentCount(present.length)
-
-        const earned = present.length * (workerProfile.dailyWage || 0)
+    if (!workerProfile) return
+    setLoading(true)
+    Promise.all([getSitesByWorker(workerProfile.id), getAttendanceByWorker(workerProfile.id), getPaymentsByWorker(workerProfile.id)])
+      .then(([sites, att, pay]) => {
+        setAssignedSites(sites); setAttendanceRecords(att)
+        const p = att.filter((r) => r.status === 'present')
+        setPresentCount(p.length)
+        const earned = p.length * (workerProfile.dailyWage || 0)
         setTotalEarned(earned)
-
-        const paid = payments.reduce((sum, p) => sum + (p.amount || 0), 0)
-        setTotalPaid(paid)
-        setPendingAmount(earned - paid)
-
-        // Set first site as default
-        if (sites.length > 0) {
-          setSelectedSiteId(sites[0].id)
-        }
-      } catch (err) {
-        console.error('Error loading worker data:', err)
-        setError('Failed to load data. Please try again.')
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
+        const paid = pay.reduce((s, x) => s + (x.amount || 0), 0)
+        setTotalPaid(paid); setPendingAmount(earned - paid)
+        if (sites.length > 0) setSelectedSiteId(sites[0].id)
+      }).catch(() => setError('Failed to load data.'))
+      .finally(() => setLoading(false))
   }, [workerProfile])
 
-  // Check today's attendance when records or selected site changes
   useEffect(() => {
-    if (selectedSiteId && attendanceRecords.length > 0) {
-      checkTodayAttendance(attendanceRecords, selectedSiteId)
-    }
+    if (!selectedSiteId || !attendanceRecords.length) return
+    const t = today()
+    const rec = attendanceRecords.find((r) => r.date === t && r.siteId === selectedSiteId)
+    if (rec?.status === 'present' || rec?.status === 'approved') { setTodayApproved(true); setTodayRequested(false) }
+    else if (rec?.status === 'pending') { setTodayRequested(true); setTodayApproved(false) }
+    else { setTodayRequested(false); setTodayApproved(false) }
   }, [selectedSiteId, attendanceRecords])
 
-  // Real-time listener for today's attendance request status
-  useEffect(() => {
-    if (!workerProfile || !selectedSiteId) return
+  const handleLogout = async () => { try { await logoutWorker(); navigate('/worker/login', { replace: true }) } catch { setError('Logout failed.') } }
 
-    const today = getTodayString()
-
-    const q = query(
-      collection(db, 'attendance_requests'),
-      where('workerId', '==', workerProfile.id),
-      where('siteId', '==', selectedSiteId),
-      where('date', '==', today),
-    )
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const request = snapshot.docs[0].data()
-        setTodayRequestStatus(request.status) // pending, approved, or rejected
-        
-        // Update UI state based on status
-        if (request.status === 'approved') {
-          setTodayApproved(true)
-          setTodayRequested(false)
-        } else if (request.status === 'pending') {
-          setTodayRequested(true)
-          setTodayApproved(false)
-        } else if (request.status === 'rejected') {
-          setTodayRequested(false)
-          setTodayApproved(false)
-        }
-      } else {
-        setTodayRequestStatus(null)
-        setTodayRequested(false)
-        setTodayApproved(false)
-      }
-    })
-
-    return () => unsubscribe()
-  }, [workerProfile, selectedSiteId])
-
-  // Handle logout
-  const handleLogout = async () => {
+  const handleRequest = async () => {
+    if (!selectedSiteId) { setError('Select a site'); return }
+    setRequesting(true); setError('')
     try {
-      await logoutWorker()
-      navigate('/worker/login', { replace: true })
-    } catch (err) {
-      setError('Logout failed. Please try again.')
-    }
-  }
-
-  // Handle request attendance
-  const handleRequestAttendance = async () => {
-    try {
-      setError('')
-      setRequesting(true)
-
-      if (!selectedSiteId) {
-        setError('Please select a site')
-        return
-      }
-
-      const today = new Date().toISOString().split('T')[0]
-
-      await createAttendanceRequest({
-        workerId: workerProfile.id,
-        siteId: selectedSiteId,
-        contractorId: workerProfile.contractorId,
-        date: today,
-      })
-
-      setRequestSent(true)
-      setTodayRequested(true)
-
-      // Reset after 3 seconds
+      await createAttendanceRequest({ workerId: workerProfile.id, siteId: selectedSiteId, contractorId: workerProfile.contractorId, date: today() })
+      setRequestSent(true); setTodayRequested(true)
       setTimeout(() => setRequestSent(false), 3000)
-    } catch (err) {
-      console.error('Error requesting attendance:', err)
-      setError('Failed to request attendance. Please try again.')
-    } finally {
-      setRequesting(false)
-    }
+    } catch { setError('Failed to request attendance.') }
+    finally { setRequesting(false) }
   }
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return `₹${Number(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
-  }
+  if (loading) return <div className="flex min-h-screen items-center justify-center bg-surface-400"><div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" /></div>
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-900">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
-      </div>
-    )
-  }
+  const dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
   return (
-    <div className="bg-gray-950 min-h-screen w-full">
-      <div className="max-w-sm mx-auto pb-8">
-        {/* Top Header */}
-        <div className="bg-gray-900 px-4 py-4 sticky top-0 z-10 flex items-center justify-between">
-          <h2 className="text-white font-semibold">👷 Hi, {workerProfile?.name || 'Worker'}!</h2>
-          <button
-            onClick={handleLogout}
-            className="text-gray-400 hover:text-red-400 text-sm font-medium transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mx-4 mt-3 text-red-400 text-sm bg-red-900 bg-opacity-20 p-3 rounded-lg border border-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* Stats Cards Row */}
-        <div className="grid grid-cols-2 gap-3 px-4 mt-4">
-          {/* Attendance Card */}
-          <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-            <div className="text-white font-bold text-xl">{presentCount}</div>
-            <div className="text-gray-400 text-xs mt-1">Days Present</div>
-          </div>
-
-          {/* Pending Wages Card */}
-          <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-            <div className="text-orange-400 font-bold text-xl">{formatCurrency(pendingAmount)}</div>
-            <div className="text-gray-400 text-xs mt-1">Pending Payment</div>
+    <div className="min-h-screen w-full bg-surface-400">
+      <div className="mx-auto max-w-sm pb-8">
+        <div className="sticky top-0 z-10 border-b border-white/5 bg-surface-400/90 px-4 py-4 backdrop-blur-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-brand text-sm font-bold text-white shadow-glow">{(workerProfile?.name || 'W')[0].toUpperCase()}</div>
+              <h2 className="font-semibold text-white">Hi, {workerProfile?.name || 'Worker'}!</h2>
+            </div>
+            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-400">Logout</button>
           </div>
         </div>
 
-        {/* Request Attendance Section */}
+        {error && <div className="mx-4 mt-3 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">{error}</div>}
+
+        <div className="mt-4 grid grid-cols-2 gap-3 px-4">
+          <div className="glass-card p-4"><div className="text-xl font-bold text-white">{presentCount}</div><div className="mt-1 text-xs text-gray-500">Days Present</div></div>
+          <div className="glass-card p-4"><div className="text-xl font-bold text-brand-400">{fmt(pendingAmount)}</div><div className="mt-1 text-xs text-gray-500">Pending Payment</div></div>
+        </div>
+
         {assignedSites.length > 0 && (
-          <div className="px-4 mt-6">
-            <h3 className="text-white font-semibold text-lg">Request Attendance</h3>
-
-            <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700 mt-3">
-              {/* Site Selector */}
-              <div>
-                <label htmlFor="site" className="block text-gray-300 text-sm mb-2">
-                  Select Site
-                </label>
-                <select
-                  id="site"
-                  value={selectedSiteId}
-                  onChange={(e) => setSelectedSiteId(e.target.value)}
-                  disabled={todayRequested || todayApproved}
-                  className="w-full px-3 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg text-base focus:outline-none focus:border-orange-500 disabled:opacity-50"
-                >
-                  <option value="">Select a site</option>
-                  {assignedSites.map((site) => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Date Display */}
-              <div className="mt-4 text-gray-300 text-sm">{getFormattedDate()}</div>
-
-              {/* Status Check */}
-              {todayRequestStatus === 'approved' ? (
-                <div className="mt-4 text-green-400 text-sm font-medium">Attendance Approved ✓</div>
-              ) : todayRequestStatus === 'pending' ? (
-                <div className="mt-4 text-orange-400 text-sm font-medium">Request sent! Waiting for approval ⏳</div>
-              ) : todayRequestStatus === 'rejected' ? (
-                <div className="mt-4 text-red-400 text-sm font-medium">Request was rejected ✗</div>
-              ) : requestSent ? (
-                <div className="mt-4 text-orange-400 text-sm font-medium">Request sent! Waiting for approval ⏳</div>
-              ) : null}
-
-              {/* Request Button */}
-              {todayRequestStatus !== 'approved' && todayRequestStatus !== 'pending' && (
-                <button
-                  onClick={handleRequestAttendance}
-                  disabled={requesting || !selectedSiteId}
-                  className={`w-full py-3 mt-4 text-white rounded-lg font-semibold text-base transition-colors flex items-center justify-center gap-2 ${
-                    todayRequestStatus === 'rejected'
-                      ? 'bg-red-600 hover:bg-red-700'
-                      : 'bg-orange-500 hover:bg-orange-600 disabled:bg-orange-700 disabled:opacity-50'
-                  }`}
-                >
-                  {requesting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Requesting...
-                    </>
-                  ) : todayRequestStatus === 'rejected' ? (
-                    'Request Again'
-                  ) : (
-                    'Request Attendance'
-                  )}
+          <div className="mt-6 px-4">
+            <h3 className="text-lg font-semibold text-white">Request Attendance</h3>
+            <div className="glass-card mt-3 p-4">
+              <label htmlFor="site" className="mb-2 block text-sm text-gray-400">Select Site</label>
+              <select id="site" value={selectedSiteId} onChange={(e) => setSelectedSiteId(e.target.value)} disabled={todayRequested || todayApproved} className="select-field">
+                <option value="">Select a site</option>
+                {assignedSites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <div className="mt-4 text-sm text-gray-400">Today: {dateStr}</div>
+              {todayApproved && <div className="badge-success mt-4">Attendance marked ✓</div>}
+              {todayRequested && !todayApproved && <div className="badge-warning mt-4">Request sent ✓</div>}
+              {requestSent && !todayRequested && <div className="badge-warning mt-4">Waiting for approval ⏳</div>}
+              {!todayRequested && !todayApproved && (
+                <button onClick={handleRequest} disabled={requesting || !selectedSiteId} className="btn-primary mt-4 flex w-full items-center justify-center gap-2 py-3">
+                  {requesting ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Requesting...</> : 'Request Attendance'}
                 </button>
               )}
             </div>
           </div>
         )}
 
-        {/* Attendance History Section */}
-        <div className="px-4 mt-6">
-          <h3 className="text-white font-semibold text-lg">Attendance History</h3>
-
-          {attendanceRecords.length === 0 ? (
-            <div className="text-gray-500 text-sm text-center mt-4">No attendance records yet</div>
-          ) : (
-            <div className="space-y-2 mt-2">
-              {attendanceRecords.slice(0, 30).map((record) => (
-                <div
-                  key={record.id}
-                  className="bg-gray-800 rounded-xl px-4 py-3 border border-gray-700 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-white text-sm font-medium">
-                      {new Date(record.date).toLocaleDateString('en-IN')}
-                    </div>
-                    <div className="text-gray-400 text-xs">Site {record.siteId?.slice(0, 8)}...</div>
-                  </div>
-
-                  {record.status === 'present' || record.status === 'approved' ? (
-                    <div className="bg-green-900 text-green-400 rounded-full px-3 py-1 text-xs font-medium">
-                      Present
-                    </div>
-                  ) : record.status === 'absent' ? (
-                    <div className="bg-red-900 text-red-400 rounded-full px-3 py-1 text-xs font-medium">
-                      Absent
-                    </div>
-                  ) : (
-                    <div className="bg-gray-700 text-gray-300 rounded-full px-3 py-1 text-xs font-medium">
-                      {record.status}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+        <div className="mt-6 px-4">
+          <h3 className="text-lg font-semibold text-white">Attendance History</h3>
+          {!attendanceRecords.length ? <p className="mt-4 text-center text-sm text-gray-500">No records yet</p> : (
+            <div className="mt-2 space-y-2">{attendanceRecords.slice(0, 30).map((r) => (
+              <div key={r.id} className="glass-card flex items-center justify-between px-4 py-3">
+                <div><div className="text-sm font-medium text-white">{new Date(r.date).toLocaleDateString('en-IN')}</div><div className="text-xs text-gray-500">Site {r.siteId?.slice(0, 8)}...</div></div>
+                {r.status === 'present' || r.status === 'approved' ? <span className="badge-success text-[11px]">Present</span> : r.status === 'absent' ? <span className="badge-danger text-[11px]">Absent</span> : <span className="badge-neutral text-[11px]">{r.status}</span>}
+              </div>
+            ))}</div>
           )}
         </div>
 
-        {/* Earnings Section */}
-        <div className="px-4 mt-6">
-          <h3 className="text-white font-semibold text-lg">My Earnings</h3>
-
-          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700 mt-3">
-            {/* Daily Wage */}
-            <div className="flex justify-between items-center text-sm mb-3">
-              <span className="text-gray-300">Daily Wage</span>
-              <span className="text-white font-medium">
-                {formatCurrency(workerProfile?.dailyWage)} / day
-              </span>
-            </div>
-
-            {/* Total Days Present */}
-            <div className="flex justify-between items-center text-sm mb-3">
-              <span className="text-gray-300">Total Days Present</span>
-              <span className="text-white font-medium">{presentCount} days</span>
-            </div>
-
-            {/* Total Earned */}
-            <div className="flex justify-between items-center text-sm mb-3">
-              <span className="text-gray-300">Total Earned</span>
-              <span className="text-white font-medium">{formatCurrency(totalEarned)}</span>
-            </div>
-
-            {/* Divider */}
-            <div className="border-t border-gray-600 my-3" />
-
-            {/* Total Paid */}
-            <div className="flex justify-between items-center text-sm mb-3">
-              <span className="text-gray-300">Total Paid</span>
-              <span className="text-green-400 font-medium">{formatCurrency(totalPaid)}</span>
-            </div>
-
-            {/* Pending */}
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-300">Pending</span>
-              <span className="text-orange-400 font-bold text-lg">{formatCurrency(pendingAmount)}</span>
-            </div>
+        <div className="mt-6 px-4">
+          <h3 className="text-lg font-semibold text-white">My Earnings</h3>
+          <div className="glass-card mt-3 p-4">
+            <div className="flex justify-between text-sm"><span className="text-gray-400">Daily Wage</span><span className="text-white">{fmt(workerProfile?.dailyWage)} / day</span></div>
+            <div className="mt-3 flex justify-between text-sm"><span className="text-gray-400">Days Present</span><span className="text-white">{presentCount} days</span></div>
+            <div className="mt-3 flex justify-between text-sm"><span className="text-gray-400">Total Earned</span><span className="text-white">{fmt(totalEarned)}</span></div>
+            <div className="my-3 border-t border-white/5" />
+            <div className="flex justify-between text-sm"><span className="text-gray-400">Total Paid</span><span className="text-emerald-400">{fmt(totalPaid)}</span></div>
+            <div className="mt-3 flex justify-between text-sm"><span className="text-gray-400">Pending</span><span className="text-lg font-bold text-brand-400">{fmt(pendingAmount)}</span></div>
           </div>
         </div>
       </div>

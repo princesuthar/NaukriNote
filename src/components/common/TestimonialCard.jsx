@@ -1,11 +1,20 @@
-// Reusable testimonial card used to present contractor feedback.
+// Testimonial card with glassmorphism and gradient quote accent.
 function TestimonialCard({ quote, name, role }) {
   return (
-    <article className="rounded-2xl border border-gray-100 bg-white p-6 shadow-md">
-      <p className="text-lg tracking-wide text-amber-500">★★★★★</p>
-      <blockquote className="mt-3 text-gray-600 italic">"{quote}"</blockquote>
-      <p className="mt-5 font-semibold text-gray-900">{name}</p>
-      <p className="text-sm text-gray-400">{role}</p>
+    <article className="glass-card group p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow">
+      <div className="text-2xl font-bold text-gradient leading-none">"</div>
+      <blockquote className="mt-3 text-sm leading-relaxed text-gray-300 italic">
+        {quote}
+      </blockquote>
+      <div className="mt-5 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-brand text-sm font-bold text-white">
+          {name.charAt(0)}
+        </div>
+        <div>
+          <p className="font-semibold text-white">{name}</p>
+          <p className="text-xs text-gray-400">{role}</p>
+        </div>
+      </div>
     </article>
   )
 }

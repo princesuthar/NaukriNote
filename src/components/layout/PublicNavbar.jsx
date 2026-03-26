@@ -1,4 +1,4 @@
-// Responsive public navbar with scroll-reactive styling for public pages.
+// Responsive public navbar with glassmorphism scroll effect and gradient CTA.
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -30,39 +30,38 @@ function PublicNavbar() {
   const getLinkClass = (path) => {
     const isActive = location.pathname === path
     return isActive
-      ? 'font-semibold text-orange-400'
-      : 'text-white transition hover:text-orange-300'
+      ? 'font-semibold text-brand-400'
+      : 'text-gray-300 transition-colors duration-200 hover:text-white'
   }
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-30 transition-colors duration-300 ${
-        isScrolled ? 'bg-gray-900 shadow-lg' : 'bg-transparent'
+      className={`fixed inset-x-0 top-0 z-30 transition-all duration-500 ${
+        isScrolled
+          ? 'border-b border-white/5 bg-surface-400/80 shadow-glass backdrop-blur-xl'
+          : 'bg-transparent'
       }`}
     >
-      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link to="/" className="inline-flex items-center gap-2" aria-label="Go to home page">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" aria-hidden="true" />
-          <span className="text-lg font-bold text-white">WorkSite Manager</span>
+      <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <Link to="/" className="inline-flex items-center gap-2.5" aria-label="Go to home page">
+          <span className="h-2.5 w-2.5 rounded-full bg-gradient-brand shadow-glow" aria-hidden="true" />
+          <span className="text-lg font-bold text-white">NokriNote</span>
         </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-8 md:flex">
           {links.map((item) => (
             <Link key={item.path} to={item.path} className={getLinkClass(item.path)}>
               {item.label}
             </Link>
           ))}
-          <Link
-            to="/signup"
-            className="rounded-lg bg-orange-500 px-5 py-2 text-white transition hover:bg-orange-600"
-          >
+          <Link to="/signup" className="btn-primary px-5 py-2 text-sm">
             Get Started
           </Link>
         </div>
 
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-lg p-2 text-white transition hover:bg-white/10 md:hidden"
+          className="inline-flex items-center justify-center rounded-xl p-2 text-gray-300 transition-colors duration-200 hover:bg-white/10 hover:text-white md:hidden"
           onClick={() => setIsMenuOpen((prev) => !prev)}
           aria-expanded={isMenuOpen}
           aria-label="Toggle navigation menu"
@@ -78,21 +77,14 @@ function PublicNavbar() {
       </nav>
 
       {isMenuOpen && (
-        <div className="border-t border-gray-800 bg-gray-900 px-4 py-4 md:hidden">
-          <div className="flex flex-col gap-3">
+        <div className="animate-slide-down border-t border-white/5 bg-surface-400/95 px-4 py-5 backdrop-blur-xl md:hidden">
+          <div className="flex flex-col gap-4">
             {links.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={getLinkClass(item.path)}
-              >
+              <Link key={item.path} to={item.path} className={getLinkClass(item.path)}>
                 {item.label}
               </Link>
             ))}
-            <Link
-              to="/signup"
-              className="w-fit rounded-lg bg-orange-500 px-5 py-2 text-white transition hover:bg-orange-600"
-            >
+            <Link to="/signup" className="btn-primary w-fit px-5 py-2 text-sm">
               Get Started
             </Link>
           </div>
