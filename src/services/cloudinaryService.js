@@ -1,43 +1,30 @@
 // This service handles UPI QR image uploads to Cloudinary.
+// TODO: Move these back to .env once environment variable issue is resolved
 
-const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-
-if (!cloudName || !UPLOAD_PRESET) {
-  throw new Error(
-    'Missing Cloudinary environment variables: VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_UPLOAD_PRESET'
-  )
-}
-
-const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
+const CLOUD_NAME = 'dcvilamrq'
+const UPLOAD_PRESET = 'NokriNote_qr'
+const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
 
 // Uploads a QR image to Cloudinary and returns the hosted secure URL.
 export async function uploadQRImage(file) {
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', UPLOAD_PRESET)
+  if (!file) return ''
+  
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', UPLOAD_PRESET)
 
-    const response = await fetch(CLOUDINARY_URL, {
-      method: 'POST',
-      body: formData,
-    })
+  const response = await fetch(CLOUDINARY_URL, {
+    method: 'POST',
+    body: formData,
+  })
 
-    if (!response.ok) {
-      throw new Error('Failed to upload image to Cloudinary')
-    }
-
-    const result = await response.json()
-
-    if (!result.secure_url) {
-      throw new Error('Cloudinary response did not include secure_url')
-    }
-
-    return result.secure_url
-  } catch (error) {
-    console.error('Error uploading QR image:', error)
-    throw error
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error?.message || 'Failed to upload image')
   }
+
+  const result = await response.json()
+  return result.secure_url
 }
 
 export { CLOUDINARY_URL, UPLOAD_PRESET }

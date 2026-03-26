@@ -181,13 +181,37 @@ export async function assignWorkerToSite(siteId, workerId, contractorId) {
 }
 
 // Returns all worker assignments for a specific site.
+// Fetches the full worker document details for each assignment.
 export async function getWorkersBySite(siteId) {
   try {
-    const assignmentsQuery = query(collection(db, 'site_workers'), where('siteId', '==', siteId))
-    const snapshot = await getDocs(assignmentsQuery)
-    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+    const q = query(
+      collection(db, 'site_workers'),
+      where('siteId', '==', siteId)
+    )
+    const snapshot = await getDocs(q)
+    console.log(`Found ${snapshot.docs.length} site_workers assignments for siteId: ${siteId}`)
+    
+    const workerPromises = snapshot.docs.map(async (docSnap) => {
+      const { workerId } = docSnap.data()
+      console.log(`Fetching worker details for workerId: ${workerId}`)
+      const workerDoc = await getDoc(doc(db, 'workers', workerId))
+      if (workerDoc.exists()) {
+        return { 
+          id: workerDoc.id, 
+          siteWorkerId: docSnap.id,
+          ...workerDoc.data() 
+        }
+      }
+      console.warn(`Worker document not found for workerId: ${workerId}`)
+      return null
+    })
+    
+    const workers = await Promise.all(workerPromises)
+    const validWorkers = workers.filter(Boolean)
+    console.log(`Successfully loaded ${validWorkers.length} workers with details`)
+    return validWorkers
   } catch (error) {
-    console.error('Error fetching workers by site:', error)
+    console.error('Error getting workers by site:', error)
     throw error
   }
 }
