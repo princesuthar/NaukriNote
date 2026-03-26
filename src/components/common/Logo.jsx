@@ -1,11 +1,12 @@
-// NaukriNote brand logo — construction notepad with hard hat icon.
-// Uses unique gradient IDs via useId to avoid SVG conflicts.
+// NaukriNote brand logo — clipboard where 'N' morphs into an attendance checkmark.
+// Uses unique gradient IDs via useId to avoid SVG definition conflicts.
 import { useId } from 'react'
 
 function Logo({ size = 40, className = '' }) {
   const uid = useId()
-  const gradId = `nk-grad-${uid}`
-  const grad2Id = `nk-grad2-${uid}`
+  const bgGradId = `bgGrad-${uid}`
+  const nMarkGradId = `nMarkGrad-${uid}`
+  const shadowId = `shadow-${uid}`
 
   return (
     <svg
@@ -17,50 +18,45 @@ function Logo({ size = 40, className = '' }) {
       className={className}
       role="img"
       aria-label="NaukriNote logo"
+      style={{ minWidth: size, minHeight: size }}
     >
       <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+        <linearGradient id={bgGradId} x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#f97316" />
-          <stop offset="100%" stopColor="#f59e0b" />
+          <stop offset="100%" stopColor="#ea580c" />
         </linearGradient>
-        <linearGradient id={grad2Id} x1="20" y1="10" x2="44" y2="54" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fff" stopOpacity="0.95" />
-          <stop offset="100%" stopColor="#fff" stopOpacity="0.7" />
+        <linearGradient id={nMarkGradId} x1="22" y1="26" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f97316" />
+          <stop offset="100%" stopColor="#ea580c" />
         </linearGradient>
+        <filter id={shadowId} x="0" y="0" width="100%" height="100%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.15" />
+        </filter>
       </defs>
 
-      {/* Rounded background */}
-      <rect width="64" height="64" rx="16" fill={`url(#${gradId})`} />
+      {/* App Icon Base */}
+      <rect width="64" height="64" rx="16" fill={`url(#${bgGradId})`} />
 
-      {/* Notepad body */}
-      <rect x="18" y="18" width="28" height="34" rx="3" fill={`url(#${grad2Id})`} />
+      {/* Clipboard Body */}
+      <rect x="14" y="14" width="36" height="42" rx="4" fill="#ffffff" filter={`url(#${shadowId})`} />
 
-      {/* Notepad lines */}
-      <line x1="23" y1="28" x2="41" y2="28" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" opacity="0.5" />
-      <line x1="23" y1="33" x2="37" y2="33" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" opacity="0.4" />
-      <line x1="23" y1="38" x2="39" y2="38" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" opacity="0.3" />
-      <line x1="23" y1="43" x2="34" y2="43" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" opacity="0.25" />
+      {/* Clipboard Metal Clip */}
+      <rect x="24" y="10" width="16" height="8" rx="4" fill="#cbd5e1" />
+      <circle cx="32" cy="14" r="2" fill="#94a3b8" />
 
-      {/* Hard hat — dome */}
+      {/* Horizontal lines for the "Note" aspect */}
+      <line x1="20" y1="24" x2="44" y2="24" stroke="#f1f5f9" strokeWidth="2" strokeLinecap="round" />
+      <line x1="20" y1="32" x2="44" y2="32" stroke="#f1f5f9" strokeWidth="2" strokeLinecap="round" />
+      <line x1="20" y1="40" x2="44" y2="40" stroke="#f1f5f9" strokeWidth="2" strokeLinecap="round" />
+      <line x1="20" y1="48" x2="36" y2="48" stroke="#f1f5f9" strokeWidth="2" strokeLinecap="round" />
+
+      {/* The stylized 'N' + Checkmark */}
       <path
-        d="M24 22 C24 15 30 10 36 10 C42 10 48 15 48 22"
-        stroke="#fff"
-        strokeWidth="3"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Hard hat — brim */}
-      <rect x="22" y="20" width="28" height="5" rx="2.5" fill="#fff" />
-
-      {/* Checkmark on notepad */}
-      <path
-        d="M35 30 L37.5 33 L42 27"
-        stroke="#f97316"
-        strokeWidth="2.2"
+        d="M22 42 V26 L31 42 L44 24"
+        stroke={`url(#${nMarkGradId})`}
+        strokeWidth="4.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="none"
-        opacity="0.7"
       />
     </svg>
   )
