@@ -39,7 +39,7 @@ function PublicNavbar() {
     <header
       className={`fixed inset-x-0 top-0 z-30 transition-all duration-500 ${
         isScrolled
-          ? 'border-b border-white/5 bg-surface-400/80 shadow-glass backdrop-blur-xl'
+          ? 'glass-heavy border-b border-white/5 shadow-glass'
           : 'bg-transparent'
       }`}
     >

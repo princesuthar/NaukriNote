@@ -13,7 +13,7 @@
   }
 
   body {
-    background-color: #111827;
+    background-color: #0f172a;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     color: #fff;
   }
@@ -23,7 +23,7 @@
     width: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #111827;
+    background: #0f172a;
   }
   ::-webkit-scrollbar-thumb {
     border-radius: 9999px;
@@ -35,14 +35,41 @@
 }
 
 @layer components {
-  /* Glassmorphism card */
+  /* =======================
+     GLASSMORPHISM SYSTEM
+     ======================= */
+
+  /* Primary glass card — frosted look with strong blur */
   .glass-card {
     border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.04);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* Lighter, more transparent glass */
+  .glass-light {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+  }
+
+  /* Stronger glass for overlays, headers */
+  .glass-heavy {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.75);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
   }
 
   /* Gradient bordered card */
@@ -50,8 +77,8 @@
     position: relative;
     border-radius: 1rem;
     background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
   .gradient-border::before {
     content: '';
@@ -59,7 +86,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(249, 115, 22, 0.4), rgba(245, 158, 11, 0.1), transparent);
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.5), rgba(245, 158, 11, 0.15), transparent);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -74,12 +101,12 @@
     padding: 0.75rem 1.5rem;
     font-weight: 600;
     color: #fff;
-    box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
     transition: all 0.3s;
   }
   .btn-primary:hover {
     background: linear-gradient(135deg, #ea580c, #d97706);
-    box-shadow: 0 0 40px rgba(249, 115, 22, 0.2);
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.3);
     transform: translateY(-1px);
   }
   .btn-primary:active {
@@ -91,25 +118,25 @@
     transform: none;
   }
 
-  /* Secondary button */
+  /* Secondary (glass) button */
   .btn-secondary {
     border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
     padding: 0.75rem 1.5rem;
     font-weight: 600;
     color: #fff;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     transition: all 0.3s;
   }
   .btn-secondary:hover {
     border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.12);
     transform: translateY(-1px);
   }
 
-  /* Input field */
+  /* Input field with glass effect */
   .input-field {
     width: 100%;
     border-radius: 0.75rem;
@@ -118,8 +145,8 @@
     padding: 0.75rem 1rem;
     color: #fff;
     outline: none;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     transition: all 0.3s;
   }
   .input-field::placeholder {
@@ -134,7 +161,7 @@
     opacity: 0.5;
   }
 
-  /* Select field */
+  /* Select field with glass */
   .select-field {
     width: 100%;
     border-radius: 0.75rem;
@@ -143,8 +170,8 @@
     padding: 0.75rem 1rem;
     color: #fff;
     outline: none;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     transition: all 0.3s;
   }
   .select-field:focus {
@@ -152,19 +179,11 @@
     box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
   }
   .select-field option {
-    background: #111827;
+    background: #1e293b;
     color: #fff;
   }
 
   /* Status badges */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 9999px;
-    padding: 0.25rem 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
   .badge-success {
     display: inline-flex;
     align-items: center;
@@ -173,7 +192,10 @@
     font-size: 0.75rem;
     font-weight: 600;
     background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.2);
     color: #34d399;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
   .badge-warning {
     display: inline-flex;
@@ -183,7 +205,10 @@
     font-size: 0.75rem;
     font-weight: 600;
     background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     color: #fbbf24;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
   .badge-danger {
     display: inline-flex;
@@ -193,7 +218,10 @@
     font-size: 0.75rem;
     font-weight: 600;
     background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.2);
     color: #f87171;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
   .badge-neutral {
     display: inline-flex;
@@ -202,8 +230,11 @@
     padding: 0.25rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 600;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: #d1d5db;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 }
 

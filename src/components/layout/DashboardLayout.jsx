@@ -54,7 +54,7 @@ function DashboardLayout({ title, children }) {
         role="presentation"
       />
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen w-64 transform border-r border-white/5 bg-surface-500/90 p-5 backdrop-blur-xl transition-transform duration-300 md:translate-x-0 ${
+        className={`fixed top-0 left-0 z-40 h-screen w-64 transform glass-heavy rounded-none p-5 transition-transform duration-300 md:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -91,7 +91,7 @@ function DashboardLayout({ title, children }) {
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col md:pl-64">
-        <header className="sticky top-0 z-20 border-b border-white/5 bg-surface-400/80 px-4 py-4 backdrop-blur-xl sm:px-6">
+        <header className="sticky top-0 z-20 glass-heavy rounded-none border-b border-white/5 px-4 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button type="button" className="rounded-xl border border-white/10 p-2 text-gray-400 transition-colors duration-200 hover:bg-white/5 hover:text-white md:hidden" onClick={() => setIsSidebarOpen((prev) => !prev)} aria-label="Toggle sidebar">
