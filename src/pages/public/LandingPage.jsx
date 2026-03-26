@@ -102,7 +102,7 @@ function LandingPage() {
         <section className="bg-surface-500 py-24">
           <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
             <p className="text-center text-sm uppercase tracking-widest text-brand-400">TESTIMONIALS</p>
-            <h2 className="mt-3 text-center text-3xl font-bold text-white">Contractors Love NokriNote</h2>
+            <h2 className="mt-3 text-center text-3xl font-bold text-white">Contractors Love NaukriNote</h2>
             <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-3">
               {testimonials.map((testimonial) => (<TestimonialCard key={testimonial.name} {...testimonial} />))}
             </div>
@@ -114,7 +114,7 @@ function LandingPage() {
           <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:30px_30px]" />
           <div className="relative mx-auto w-full max-w-4xl px-4 text-center sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold text-white">Ready to Take Control of Your Workforce?</h2>
-            <p className="mt-3 text-orange-100">Join hundreds of contractors already using NokriNote. Free to start, no credit card needed.</p>
+            <p className="mt-3 text-orange-100">Join hundreds of contractors already using NaukriNote. Free to start, no credit card needed.</p>
             <Link to="/signup" className="mt-8 inline-flex rounded-xl bg-white px-8 py-3 font-bold text-brand-600 shadow-lg transition-all duration-300 hover:bg-gray-100 hover:shadow-xl hover:-translate-y-0.5">
               Get Started For Free
             </Link>

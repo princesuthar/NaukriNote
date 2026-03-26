@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Logo from '../../components/common/Logo'
 
 function SignupPage() {
   const navigate = useNavigate()
@@ -77,8 +78,8 @@ function SignupPage() {
       <div className="relative w-full max-w-md animate-scale-in">
         <div className="glass-card p-8">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-brand shadow-glow"><span className="text-xl">🏗️</span></div>
-            <h1 className="text-2xl font-bold text-white">NokriNote</h1>
+            <Logo size={48} className="mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-white">NaukriNote</h1>
             <p className="mt-1 text-sm text-gray-400">Create your contractor account</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>

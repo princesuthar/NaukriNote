@@ -1,6 +1,7 @@
 // Responsive public navbar with glassmorphism scroll effect and gradient CTA.
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import Logo from '../common/Logo'
 
 function PublicNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -44,8 +45,8 @@ function PublicNavbar() {
     >
       <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link to="/" className="inline-flex items-center gap-2.5" aria-label="Go to home page">
-          <span className="h-2.5 w-2.5 rounded-full bg-gradient-brand shadow-glow" aria-hidden="true" />
-          <span className="text-lg font-bold text-white">NokriNote</span>
+          <Logo size={32} />
+          <span className="text-lg font-bold text-white">NaukriNote</span>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">

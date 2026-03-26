@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Logo from '../common/Logo'
 
 function DashboardLayout({ title, children }) {
   const { contractorUser, contractorProfile, logout } = useAuth()
@@ -60,8 +61,8 @@ function DashboardLayout({ title, children }) {
         <div className="flex h-full flex-col">
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-gradient-brand shadow-glow" aria-hidden="true" />
-              <h1 className="text-xl font-bold text-white">NokriNote</h1>
+              <Logo size={28} />
+              <h1 className="text-xl font-bold text-white">NaukriNote</h1>
             </div>
             <p className="mt-2 text-sm text-gray-500">{contractorProfile?.companyName || 'Contractor Portal'}</p>
           </div>

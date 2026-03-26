@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Logo from '../../components/common/Logo'
 
 function WorkerLoginPage() {
   const navigate = useNavigate()
@@ -31,8 +32,8 @@ function WorkerLoginPage() {
       </div>
       <div className="relative mx-auto w-full max-w-sm animate-scale-in">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-brand shadow-glow-lg"><span className="text-3xl">👷</span></div>
-          <h1 className="text-2xl font-bold text-white">NokriNote</h1>
+          <Logo size={64} className="mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white">NaukriNote</h1>
           <p className="mt-1 text-sm text-gray-500">Worker Login</p>
         </div>
         <div className="glass-card mt-8 p-6">
