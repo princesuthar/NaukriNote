@@ -1,11 +1,25 @@
-// Responsive public navbar for landing and about pages with auth entry links.
-import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+// Responsive public navbar with scroll-reactive styling for public pages.
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 
 function PublicNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const location = useLocation()
-  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 12)
+    }
+
+    handleScroll()
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [location.pathname])
 
   const links = [
     { label: 'Home', path: '/' },
@@ -16,21 +30,21 @@ function PublicNavbar() {
   const getLinkClass = (path) => {
     const isActive = location.pathname === path
     return isActive
-      ? 'text-gray-900 font-semibold underline underline-offset-4'
-      : 'text-gray-600 hover:text-gray-900'
+      ? 'font-semibold text-orange-400'
+      : 'text-white transition hover:text-orange-300'
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-gray-100 bg-white shadow-sm">
+    <header
+      className={`fixed inset-x-0 top-0 z-30 transition-colors duration-300 ${
+        isScrolled ? 'bg-gray-900 shadow-lg' : 'bg-transparent'
+      }`}
+    >
       <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="text-lg font-bold text-gray-900"
-          aria-label="Go to home page"
-        >
-          WorkSite Manager
-        </button>
+        <Link to="/" className="inline-flex items-center gap-2" aria-label="Go to home page">
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" aria-hidden="true" />
+          <span className="text-lg font-bold text-white">WorkSite Manager</span>
+        </Link>
 
         <div className="hidden items-center gap-6 md:flex">
           {links.map((item) => (
@@ -40,42 +54,46 @@ function PublicNavbar() {
           ))}
           <Link
             to="/signup"
-            className="rounded bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-white transition hover:bg-orange-600"
           >
-            Sign Up
+            Get Started
           </Link>
         </div>
 
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded p-2 text-gray-700 hover:bg-gray-100 md:hidden"
+          className="inline-flex items-center justify-center rounded-lg p-2 text-white transition hover:bg-white/10 md:hidden"
           onClick={() => setIsMenuOpen((prev) => !prev)}
           aria-expanded={isMenuOpen}
           aria-label="Toggle navigation menu"
         >
-          <span className="text-sm font-semibold">{isMenuOpen ? 'Close' : 'Menu'}</span>
+          <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {isMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />
+            )}
+          </svg>
         </button>
       </nav>
 
       {isMenuOpen && (
-        <div className="border-t border-gray-100 bg-white px-4 py-3 md:hidden">
+        <div className="border-t border-gray-800 bg-gray-900 px-4 py-4 md:hidden">
           <div className="flex flex-col gap-3">
             {links.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={getLinkClass(item.path)}
-                onClick={() => setIsMenuOpen(false)}
               >
                 {item.label}
               </Link>
             ))}
             <Link
               to="/signup"
-              className="w-fit rounded bg-blue-600 px-4 py-2 font-medium text-white transition hover:bg-blue-700"
-              onClick={() => setIsMenuOpen(false)}
+              className="w-fit rounded-lg bg-orange-500 px-5 py-2 text-white transition hover:bg-orange-600"
             >
-              Sign Up
+              Get Started
             </Link>
           </div>
         </div>
