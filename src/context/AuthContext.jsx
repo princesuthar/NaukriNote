@@ -1,4 +1,4 @@
-// Authentication context for contractor auth state, profile loading, and session actions.
+// Authentication context for contractor and worker auth state, profile loading, and session actions.
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
@@ -7,8 +7,10 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth'
+import { getDocs, query, collection, where } from 'firebase/firestore'
 import { auth } from '../firebase/firebaseConfig'
-import { createContractor, getContractor } from '../services/firestoreService'
+import { db } from '../firebase/firebaseConfig'
+import { createContractor, getContractor, getWorkerByPhone } from '../services/firestoreService'
 
 const AuthContext = createContext(null)
 
@@ -47,6 +49,7 @@ function AuthProvider({ children }) {
   const [contractorUser, setContractorUser] = useState(null)
   const [contractorProfile, setContractorProfile] = useState(null)
   const [workerUser, setWorkerUser] = useState(null)
+  const [workerProfile, setWorkerProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // Registers a contractor account in Firebase Auth and creates contractor profile in Firestore.
@@ -88,10 +91,42 @@ function AuthProvider({ children }) {
     }
   }
 
+  // Logs in a worker account using phone number and password and loads the worker profile from Firestore.
+  const loginWorker = async (phone, password) => {
+    try {
+      const email = `91${phone}@worksite.com`
+      const credential = await signInWithEmailAndPassword(auth, email, password)
+      const user = credential.user
+
+      const workerDoc = await getWorkerByPhone(phone)
+      if (!workerDoc) {
+        throw new Error('Worker profile not found. Please contact your contractor.')
+      }
+
+      setWorkerUser(user)
+      setWorkerProfile(workerDoc)
+
+      return workerDoc
+    } catch (error) {
+      throw new Error(mapAuthError(error))
+    }
+  }
+
   // Sends a password reset email to the contractor email address.
   const resetPassword = async (email) => {
     try {
       await sendPasswordResetEmail(auth, email)
+    } catch (error) {
+      throw new Error(mapAuthError(error))
+    }
+  }
+
+  // Signs out the current worker and clears worker session state.
+  const logoutWorker = async () => {
+    try {
+      await signOut(auth)
+      setWorkerUser(null)
+      setWorkerProfile(null)
     } catch (error) {
       throw new Error(mapAuthError(error))
     }
@@ -104,28 +139,48 @@ function AuthProvider({ children }) {
       setContractorUser(null)
       setContractorProfile(null)
       setWorkerUser(null)
+      setWorkerProfile(null)
     } catch (error) {
       throw new Error(mapAuthError(error))
     }
   }
 
-  // Keeps auth state in sync with Firebase and loads contractor profile on app start.
+  // Keeps auth state in sync with Firebase and loads appropriate profile (contractor or worker) on app start.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
-          const profile = await getContractor(user.uid)
-          setContractorUser(user)
-          setContractorProfile(profile)
+          // Check if this is a worker or contractor by email domain
+          if (user.email && user.email.endsWith('@worksite.com')) {
+            // Extract phone number from email: 91{phone}@worksite.com
+            const phone = user.email.replace('@worksite.com', '').replace('91', '')
+            const workerDoc = await getWorkerByPhone(phone)
+            if (workerDoc) {
+              setWorkerUser(user)
+              setWorkerProfile(workerDoc)
+              setContractorUser(null)
+              setContractorProfile(null)
+            }
+          } else {
+            // Load contractor profile
+            const profile = await getContractor(user.uid)
+            setContractorUser(user)
+            setContractorProfile(profile)
+            setWorkerUser(null)
+            setWorkerProfile(null)
+          }
         } else {
           setContractorUser(null)
           setContractorProfile(null)
           setWorkerUser(null)
+          setWorkerProfile(null)
         }
       } catch (error) {
         console.error('Error handling auth state change:', error)
         setContractorUser(null)
         setContractorProfile(null)
+        setWorkerUser(null)
+        setWorkerProfile(null)
       } finally {
         setLoading(false)
       }
@@ -139,13 +194,16 @@ function AuthProvider({ children }) {
       contractorUser,
       contractorProfile,
       workerUser,
+      workerProfile,
       loading,
       signupContractor,
       loginContractor,
+      loginWorker,
       resetPassword,
       logout,
+      logoutWorker,
     }),
-    [contractorProfile, contractorUser, loading, workerUser],
+    [contractorProfile, contractorUser, loading, workerUser, workerProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

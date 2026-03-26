@@ -27,8 +27,8 @@ function WorkerRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-900">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-500 border-t-transparent" />
       </div>
     )
   }

@@ -141,6 +141,25 @@ export async function getWorkerById(workerId) {
   }
 }
 
+// Fetches a worker document by phone number.
+export async function getWorkerByPhone(phone) {
+  try {
+    const workersQuery = query(collection(db, 'workers'), where('phone', '==', phone))
+    const snapshot = await getDocs(workersQuery)
+
+    if (snapshot.docs.length === 0) {
+      return null
+    }
+
+    // Return the first match (phone should be unique)
+    const doc = snapshot.docs[0]
+    return { id: doc.id, ...doc.data() }
+  } catch (error) {
+    console.error('Error fetching worker by phone:', error)
+    throw error
+  }
+}
+
 // Updates a worker document by ID.
 export async function updateWorker(workerId, data) {
   try {
@@ -216,14 +235,32 @@ export async function getWorkersBySite(siteId) {
   }
 }
 
-// Returns all site assignments for a specific worker.
+// Returns all site assignments for a specific worker with full site details.
 export async function getSitesByWorker(workerId) {
   try {
-    const assignmentsQuery = query(collection(db, 'site_workers'), where('workerId', '==', workerId))
-    const snapshot = await getDocs(assignmentsQuery)
-    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+    const q = query(
+      collection(db, 'site_workers'),
+      where('workerId', '==', workerId)
+    )
+    const snapshot = await getDocs(q)
+    
+    const sitePromises = snapshot.docs.map(async (docSnap) => {
+      const { siteId } = docSnap.data()
+      const siteDoc = await getDoc(doc(db, 'sites', siteId))
+      if (siteDoc.exists()) {
+        return {
+          id: siteDoc.id,
+          siteWorkerId: docSnap.id,
+          ...siteDoc.data()
+        }
+      }
+      return null
+    })
+    
+    const sites = await Promise.all(sitePromises)
+    return sites.filter(Boolean)
   } catch (error) {
-    console.error('Error fetching sites by worker:', error)
+    console.error('Error getting sites by worker:', error)
     throw error
   }
 }
@@ -257,11 +294,14 @@ export async function markAttendance(data) {
 // Returns all attendance records for a worker.
 export async function getAttendanceByWorker(workerId) {
   try {
-    const attendanceQuery = query(collection(db, 'attendance'), where('workerId', '==', workerId))
-    const snapshot = await getDocs(attendanceQuery)
-    return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))
+    const q = query(
+      collection(db, 'attendance'),
+      where('workerId', '==', workerId)
+    )
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
   } catch (error) {
-    console.error('Error fetching attendance by worker:', error)
+    console.error('Error getting attendance:', error)
     throw error
   }
 }
