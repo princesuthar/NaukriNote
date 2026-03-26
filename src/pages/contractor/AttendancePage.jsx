@@ -1,5 +1,5 @@
 // Contractor attendance page with marking controls and realtime request approvals.
-import { collection, onSnapshot, query, where } from 'firebase/firestore'
+import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore'
 import { useEffect, useMemo, useState } from 'react'
 import Toast from '../../components/common/Toast'
 import DashboardLayout from '../../components/layout/DashboardLayout'
@@ -77,6 +77,7 @@ function AttendancePage() {
             snapshot.docs.map(async (requestDoc) => {
               const data = requestDoc.data()
               let worker = null
+              let site = null
 
               try {
                 worker = await getWorkerById(data.workerId)
@@ -84,11 +85,21 @@ function AttendancePage() {
                 console.error('Failed to load worker for request:', error)
               }
 
+              try {
+                const siteDoc = await getDoc(doc(db, 'sites', data.siteId))
+                if (siteDoc.exists()) {
+                  site = siteDoc.data()
+                }
+              } catch (error) {
+                console.error('Failed to load site for request:', error)
+              }
+
               return {
                 id: requestDoc.id,
                 ...data,
-                workerName: worker?.name || 'Worker',
+                workerName: worker?.name || 'Unknown Worker',
                 workerPhone: worker?.phone || '-',
+                siteName: site?.name || 'Unknown Site',
               }
             }),
           )
@@ -205,32 +216,53 @@ function AttendancePage() {
     return `Requested ${minutes} mins ago`
   }
 
-  const handleRequestAction = async (request, action) => {
+  // Handles approve action: update request status and create attendance record
+  const handleApprove = async (request) => {
     setResolvingRequestIds((prev) => [...prev, request.id])
 
     try {
-      await updateRequestStatus(request.id, action)
+      // Step 1: Update request status to approved
+      await updateRequestStatus(request.id, 'approved')
 
-      if (action === 'approved') {
-        await markAttendance({
-          contractorId: request.contractorId,
-          workerId: request.workerId,
-          siteId: request.siteId,
-          date: request.date,
-          status: 'present',
-          source: 'request',
-        })
-      }
+      // Step 2: Create actual attendance record
+      await markAttendance({
+        workerId: request.workerId,
+        siteId: request.siteId,
+        contractorId: request.contractorId,
+        date: request.date,
+        status: 'present',
+        markedBy: 'worker',
+      })
 
-      showToast(
-        action === 'approved' ? 'Request approved and attendance marked' : 'Request rejected',
-        'success',
-      )
+      showToast('Attendance approved!', 'success')
     } catch (error) {
-      console.error('Failed to process request:', error)
-      showToast('Could not process request', 'error')
+      console.error('Error approving request:', error)
+      showToast('Failed to approve. Try again.', 'error')
     } finally {
       setResolvingRequestIds((prev) => prev.filter((id) => id !== request.id))
+    }
+  }
+
+  // Handles reject action: update request status to rejected
+  const handleReject = async (request) => {
+    setResolvingRequestIds((prev) => [...prev, request.id])
+
+    try {
+      await updateRequestStatus(request.id, 'rejected')
+      showToast('Request rejected', 'info')
+    } catch (error) {
+      console.error('Error rejecting request:', error)
+      showToast('Failed to reject. Try again.', 'error')
+    } finally {
+      setResolvingRequestIds((prev) => prev.filter((id) => id !== request.id))
+    }
+  }
+
+  const handleRequestAction = async (request, action) => {
+    if (action === 'approved') {
+      await handleApprove(request)
+    } else if (action === 'rejected') {
+      await handleReject(request)
     }
   }
 

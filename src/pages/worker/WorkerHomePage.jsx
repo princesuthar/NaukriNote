@@ -1,13 +1,16 @@
 // Mobile-first home page for workers displaying attendance, earnings, and attendance request options.
+import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { db } from '../../firebase/firebaseConfig'
 import {
   getSitesByWorker,
   getAttendanceByWorker,
   getPaymentsByWorker,
   createAttendanceRequest,
 } from '../../services/firestoreService'
+import { getTodayString } from '../../utils/helpers'
 
 function WorkerHomePage() {
   const navigate = useNavigate()
@@ -29,6 +32,7 @@ function WorkerHomePage() {
   const [requestSent, setRequestSent] = useState(false)
   const [todayRequested, setTodayRequested] = useState(false)
   const [todayApproved, setTodayApproved] = useState(false)
+  const [todayRequestStatus, setTodayRequestStatus] = useState(null) // null, pending, approved, rejected
   const [loading, setLoading] = useState(true)
   const [requesting, setRequesting] = useState(false)
   const [error, setError] = useState('')
@@ -110,6 +114,45 @@ function WorkerHomePage() {
       checkTodayAttendance(attendanceRecords, selectedSiteId)
     }
   }, [selectedSiteId, attendanceRecords])
+
+  // Real-time listener for today's attendance request status
+  useEffect(() => {
+    if (!workerProfile || !selectedSiteId) return
+
+    const today = getTodayString()
+
+    const q = query(
+      collection(db, 'attendance_requests'),
+      where('workerId', '==', workerProfile.id),
+      where('siteId', '==', selectedSiteId),
+      where('date', '==', today),
+    )
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const request = snapshot.docs[0].data()
+        setTodayRequestStatus(request.status) // pending, approved, or rejected
+        
+        // Update UI state based on status
+        if (request.status === 'approved') {
+          setTodayApproved(true)
+          setTodayRequested(false)
+        } else if (request.status === 'pending') {
+          setTodayRequested(true)
+          setTodayApproved(false)
+        } else if (request.status === 'rejected') {
+          setTodayRequested(false)
+          setTodayApproved(false)
+        }
+      } else {
+        setTodayRequestStatus(null)
+        setTodayRequested(false)
+        setTodayApproved(false)
+      }
+    })
+
+    return () => unsubscribe()
+  }, [workerProfile, selectedSiteId])
 
   // Handle logout
   const handleLogout = async () => {
@@ -234,26 +277,34 @@ function WorkerHomePage() {
               <div className="mt-4 text-gray-300 text-sm">{getFormattedDate()}</div>
 
               {/* Status Check */}
-              {todayApproved ? (
-                <div className="mt-4 text-green-400 text-sm font-medium">Attendance marked ✓</div>
-              ) : todayRequested ? (
-                <div className="mt-4 text-orange-400 text-sm font-medium">Request already sent ✓</div>
+              {todayRequestStatus === 'approved' ? (
+                <div className="mt-4 text-green-400 text-sm font-medium">Attendance Approved ✓</div>
+              ) : todayRequestStatus === 'pending' ? (
+                <div className="mt-4 text-orange-400 text-sm font-medium">Request sent! Waiting for approval ⏳</div>
+              ) : todayRequestStatus === 'rejected' ? (
+                <div className="mt-4 text-red-400 text-sm font-medium">Request was rejected ✗</div>
               ) : requestSent ? (
                 <div className="mt-4 text-orange-400 text-sm font-medium">Request sent! Waiting for approval ⏳</div>
               ) : null}
 
               {/* Request Button */}
-              {!todayRequested && !todayApproved && (
+              {todayRequestStatus !== 'approved' && todayRequestStatus !== 'pending' && (
                 <button
                   onClick={handleRequestAttendance}
                   disabled={requesting || !selectedSiteId}
-                  className="w-full py-3 mt-4 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-700 disabled:opacity-50 text-white rounded-lg font-semibold text-base transition-colors flex items-center justify-center gap-2"
+                  className={`w-full py-3 mt-4 text-white rounded-lg font-semibold text-base transition-colors flex items-center justify-center gap-2 ${
+                    todayRequestStatus === 'rejected'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-orange-500 hover:bg-orange-600 disabled:bg-orange-700 disabled:opacity-50'
+                  }`}
                 >
                   {requesting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Requesting...
                     </>
+                  ) : todayRequestStatus === 'rejected' ? (
+                    'Request Again'
                   ) : (
                     'Request Attendance'
                   )}
