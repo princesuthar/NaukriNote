@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Contractors can only read/write their own data
+    match /contractors/{contractorId} {
+      allow read, write: if request.auth != null && request.auth.uid == contractorId;
+    }
+
+    // Sites — only the contractor who created it
+    match /sites/{siteId} {
+      allow read, write: if request.auth != null &&
+        resource.data.contractorId == request.auth.uid;
+      allow create: if request.auth != null;
+    }
+
+    // Workers — only the contractor who added them
+    match /workers/{workerId} {
+      allow read, write: if request.auth != null &&
+        resource.data.contractorId == request.auth.uid;
+      allow create: if request.auth != null;
+      // Worker can read their own document
+      allow read: if request.auth != null &&
+        resource.data.email == request.auth.token.email;
+    }
+
+    // Site workers assignments
+    match /site_workers/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Attendance
+    match /attendance/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Attendance requests
+    match /attendance_requests/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Payroll
+    match /payroll_payments/{docId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
