@@ -59,6 +59,7 @@ function LandingPage() {
             <div className="mt-10 flex flex-col gap-4 sm:flex-row animate-slide-up" style={{animationDelay: '400ms'}}>
               <Link to="/signup" className="btn-primary px-8 py-3 text-lg">Start For Free</Link>
               <button type="button" onClick={scrollToFeatures} className="btn-secondary px-8 py-3 text-lg">See How It Works</button>
+              <Link to="/worker/login" className="btn-secondary px-8 py-3 text-lg border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">Worker Login</Link>
             </div>
             <div className="mt-12 flex flex-wrap items-center justify-center gap-3 text-sm text-gray-500 sm:gap-6 animate-fade-in" style={{animationDelay: '600ms'}}>
               <div className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /><span>500+ Workers Managed</span></div>

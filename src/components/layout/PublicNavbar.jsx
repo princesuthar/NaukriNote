@@ -25,7 +25,8 @@ function PublicNavbar() {
   const links = [
     { label: 'Home', path: '/' },
     { label: 'About', path: '/about' },
-    { label: 'Login', path: '/login' },
+    { label: 'Contractor Login', path: '/login' },
+    { label: 'Worker Login', path: '/worker/login' },
   ]
 
   const getLinkClass = (path) => {
