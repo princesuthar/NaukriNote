@@ -1,4 +1,256 @@
-/* Global stylesheet that loads Tailwind CSS layers for the app. */
+/* Global stylesheet with Inter font, dark theme base, and reusable utility classes. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #0f172a;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #fff;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0f172a;
+  }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: #4b5563;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+}
+
+@layer components {
+  /* =======================
+     GLASSMORPHISM SYSTEM
+     ======================= */
+
+  /* Primary glass card — frosted look with strong blur */
+  .glass-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* Lighter, more transparent glass */
+  .glass-light {
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+  }
+
+  /* Stronger glass for overlays, headers */
+  .glass-heavy {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.75);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(32px) saturate(200%);
+    -webkit-backdrop-filter: blur(32px) saturate(200%);
+  }
+
+  /* Gradient bordered card */
+  .gradient-border {
+    position: relative;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.5), rgba(245, 158, 11, 0.15), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #f97316, #f59e0b);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
+    transition: all 0.3s;
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #ea580c, #d97706);
+    box-shadow: 0 0 40px rgba(249, 115, 22, 0.3);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+  .btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+  }
+
+  /* Secondary (glass) button */
+  .btn-secondary {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s;
+  }
+  .btn-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+  }
+
+  /* Input field with glass effect */
+  .input-field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.75rem 1rem;
+    color: #fff;
+    outline: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.3s;
+  }
+  .input-field::placeholder {
+    color: #6b7280;
+  }
+  .input-field:focus {
+    border-color: rgba(251, 146, 60, 0.5);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .input-field:disabled {
+    opacity: 0.5;
+  }
+
+  /* Select field with glass */
+  .select-field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.75rem 1rem;
+    color: #fff;
+    outline: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.3s;
+  }
+  .select-field:focus {
+    border-color: rgba(251, 146, 60, 0.5);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
+  }
+  .select-field option {
+    background: #1e293b;
+    color: #fff;
+  }
+
+  /* Status badges */
+  .badge-success {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .badge-warning {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .badge-danger {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .badge-neutral {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #d1d5db;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+@layer utilities {
+  /* Staggered animation delays */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+
+  /* Text gradient */
+  .text-gradient {
+    background: linear-gradient(135deg, #f97316, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
