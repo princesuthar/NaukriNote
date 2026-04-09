@@ -9,10 +9,11 @@ import DashboardLayout from '../../components/layout/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
 import useToast from '../../hooks/useToast'
 import { uploadQRImage } from '../../services/cloudinaryService'
-import { addWorker, assignWorkerToSite, calculatePendingWages, deleteWorker, getAttendanceByWorker, getSitesByContractor, getSitesByWorker, getWorkersByContractor, removeWorkerFromSite } from '../../services/firestoreService'
+import { addWorker, assignWorkerToSite, calculatePendingWages, deleteWorker, getAttendanceByWorker, getSitesByContractor, getSitesByWorker, getWorkersByContractor, removeWorkerFromSite, updateWorker } from '../../services/firestoreService'
 import { phoneToEmail } from '../../utils/helpers'
 
 const workerFormInitialState = { name: '', phone: '', dailyWage: '', siteIds: [], qrFile: null, password: '', confirmPassword: '' }
+const editWorkerFormInitialState = { name: '', dailyWage: '', siteIds: [] }
 
 function WorkersPage() {
   const { contractorUser } = useAuth()
@@ -28,7 +29,12 @@ function WorkersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
   const [workerForm, setWorkerForm] = useState(workerFormInitialState)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editFormError, setEditFormError] = useState('')
+  const [editWorkerForm, setEditWorkerForm] = useState(editWorkerFormInitialState)
   const [selectedWorker, setSelectedWorker] = useState(null)
+  const [editingWorker, setEditingWorker] = useState(null)
   const [workerMetaLoading, setWorkerMetaLoading] = useState(false)
   const [workerMeta, setWorkerMeta] = useState({ totalAttendance: 0, pendingAmount: 0 })
 
@@ -65,6 +71,35 @@ function WorkersPage() {
   const openAddModal = () => { setWorkerForm(workerFormInitialState); setFormError(''); setIsAddModalOpen(true) }
   const closeAddModal = () => { setIsAddModalOpen(false); setWorkerForm(workerFormInitialState); setFormError('') }
 
+  const openEditModal = async (worker) => {
+    setEditFormError('')
+    setEditingWorker(worker)
+    setIsEditModalOpen(true)
+
+    try {
+      const assignedSites = await getSitesByWorker(worker.id)
+      setEditWorkerForm({
+        name: worker.name || '',
+        dailyWage: String(worker.dailyWage ?? ''),
+        siteIds: assignedSites.map((site) => site.id),
+      })
+    } catch (error) {
+      setEditWorkerForm({
+        name: worker.name || '',
+        dailyWage: String(worker.dailyWage ?? ''),
+        siteIds: [],
+      })
+      setEditFormError(error?.message || 'Failed to load worker details')
+    }
+  }
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false)
+    setEditingWorker(null)
+    setEditWorkerForm(editWorkerFormInitialState)
+    setEditFormError('')
+  }
+
   const handleAddWorker = async (event) => {
     event.preventDefault()
     if (!contractorUser?.uid) return
@@ -85,6 +120,42 @@ function WorkersPage() {
     } catch (error) { setFormError(error?.message || 'Failed to add worker') } finally { setIsSubmitting(false) }
   }
 
+  const handleEditWorker = async (event) => {
+    event.preventDefault()
+    if (!contractorUser?.uid || !editingWorker) return
+
+    const sanitizedName = editWorkerForm.name.trim()
+    const dailyWage = Number(editWorkerForm.dailyWage)
+    if (!sanitizedName) { setEditFormError('Worker name is required'); return }
+    if (!dailyWage || dailyWage <= 0) { setEditFormError('Daily wage must be a valid number'); return }
+
+    setIsEditing(true)
+    setEditFormError('')
+
+    try {
+      const currentAssignments = await getSitesByWorker(editingWorker.id)
+      const currentAssignmentMap = new Map(currentAssignments.map((assignment) => [assignment.id, assignment.siteWorkerId]))
+      const currentSiteIds = new Set(currentAssignments.map((assignment) => assignment.id))
+      const nextSiteIds = new Set(editWorkerForm.siteIds)
+
+      await updateWorker(editingWorker.id, { name: sanitizedName, dailyWage })
+
+      const sitesToAdd = [...nextSiteIds].filter((siteId) => !currentSiteIds.has(siteId))
+      const sitesToRemove = [...currentSiteIds].filter((siteId) => !nextSiteIds.has(siteId))
+
+      await Promise.all(sitesToAdd.map((siteId) => assignWorkerToSite(siteId, editingWorker.id, contractorUser.uid)))
+      await Promise.all(sitesToRemove.map((siteId) => removeWorkerFromSite(currentAssignmentMap.get(siteId))))
+
+      showToast('Worker updated successfully', 'success')
+      closeEditModal()
+      await loadWorkersData()
+    } catch (error) {
+      setEditFormError(error?.message || 'Failed to update worker')
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
   const handleViewWorker = async (worker) => {
     setSelectedWorker(worker); setWorkerMetaLoading(true)
     try {
@@ -97,6 +168,36 @@ function WorkersPage() {
     if (!window.confirm(`Are you sure you want to remove ${worker.name}?`)) return
     try { const assignments = await getSitesByWorker(worker.id); await Promise.all(assignments.map((a) => removeWorkerFromSite(a.id))); await deleteWorker(worker.id); showToast('Worker removed', 'success'); await loadWorkersData() } catch (error) { showToast('Could not remove worker', 'error') }
   }
+
+  const toggleSiteSelection = (siteId, setForm) => {
+    setForm((prev) => {
+      const nextSiteIds = prev.siteIds.includes(siteId)
+        ? prev.siteIds.filter((id) => id !== siteId)
+        : [...prev.siteIds, siteId]
+
+      return { ...prev, siteIds: nextSiteIds }
+    })
+  }
+
+  const renderSiteCheckboxes = (selectedSiteIds, setForm, emptyLabel = 'Create a site first.') => (
+    <div className="space-y-2 rounded-2xl border border-white/5 bg-white/[0.03] p-3">
+      {sites.length === 0 ? (
+        <p className="text-sm text-gray-500">{emptyLabel}</p>
+      ) : (
+        sites.map((site) => (
+          <label key={site.id} className="flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 text-sm text-gray-300 transition-colors duration-200 hover:bg-white/[0.04]">
+            <input
+              type="checkbox"
+              checked={selectedSiteIds.includes(site.id)}
+              onChange={() => toggleSiteSelection(site.id, setForm)}
+              className="h-4 w-4 rounded border-white/20 bg-transparent text-brand-500 focus:ring-brand-500"
+            />
+            <span>{site.name}</span>
+          </label>
+        ))
+      )}
+    </div>
+  )
 
   const renderWorkerSites = (workerId) => {
     const names = workerSiteMap[workerId]?.names || []
@@ -129,7 +230,7 @@ function WorkersPage() {
                         <td className="px-4 py-3 text-gray-400">{worker.phone}</td>
                         <td className="px-4 py-3 text-emerald-400">₹{worker.dailyWage} / day</td>
                         <td className="px-4 py-3"><div className="flex flex-wrap gap-1.5">{renderWorkerSites(worker.id)}</div></td>
-                        <td className="px-4 py-3"><div className="flex items-center gap-3"><button type="button" onClick={() => handleViewWorker(worker)} className="text-brand-400 transition-colors duration-200 hover:text-brand-300">View</button><button type="button" onClick={() => handleRemoveWorker(worker)} className="text-red-400 transition-colors duration-200 hover:text-red-300">Remove</button></div></td>
+                        <td className="px-4 py-3"><div className="flex items-center gap-3"><button type="button" onClick={() => handleViewWorker(worker)} className="text-brand-400 transition-colors duration-200 hover:text-brand-300">View</button><button type="button" onClick={() => openEditModal(worker)} className="text-brand-400 transition-colors duration-200 hover:text-brand-300">Edit</button><button type="button" onClick={() => handleRemoveWorker(worker)} className="text-red-400 transition-colors duration-200 hover:text-red-300">Remove</button></div></td>
                       </tr>
                     )
                   })}
@@ -144,6 +245,7 @@ function WorkersPage() {
                   <div className="mt-3 flex flex-wrap gap-1.5">{renderWorkerSites(worker.id)}</div>
                   <div className="mt-4 flex items-center gap-4 text-sm">
                     <button type="button" onClick={() => handleViewWorker(worker)} className="text-brand-400 hover:text-brand-300">View</button>
+                    <button type="button" onClick={() => openEditModal(worker)} className="text-brand-400 hover:text-brand-300">Edit</button>
                     <button type="button" onClick={() => handleRemoveWorker(worker)} className="text-red-400 hover:text-red-300">Remove</button>
                   </div>
                 </article>
@@ -157,12 +259,21 @@ function WorkersPage() {
           <div><label htmlFor="worker-name" className="mb-2 block text-sm text-gray-300">Full Name</label><input id="worker-name" type="text" required value={workerForm.name} onChange={(e) => setWorkerForm((prev) => ({ ...prev, name: e.target.value }))} className="input-field" /></div>
           <div><label htmlFor="worker-phone" className="mb-2 block text-sm text-gray-300">Phone Number</label><input id="worker-phone" type="text" required value={workerForm.phone} onChange={(e) => setWorkerForm((prev) => ({ ...prev, phone: e.target.value }))} className="input-field" /></div>
           <div><label htmlFor="worker-wage" className="mb-2 block text-sm text-gray-300">Daily Wage in ₹</label><input id="worker-wage" type="number" min="1" required value={workerForm.dailyWage} onChange={(e) => setWorkerForm((prev) => ({ ...prev, dailyWage: e.target.value }))} className="input-field" /></div>
-          <div><label className="mb-2 block text-sm text-gray-300">Assign to Sites</label><select multiple value={workerForm.siteIds} onChange={(e) => { const v = Array.from(e.target.selectedOptions).map((o) => o.value); setWorkerForm((prev) => ({ ...prev, siteIds: v })) }} className="select-field h-32 text-sm">{sites.length === 0 ? <option disabled value="">Create a site first.</option> : sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select><p className="mt-1.5 text-xs text-gray-500">Hold Ctrl to select multiple.</p></div>
+          <div><label className="mb-2 block text-sm text-gray-300">Assign to Sites</label>{renderSiteCheckboxes(workerForm.siteIds, setWorkerForm)}</div>
           <div><label htmlFor="worker-qr" className="mb-2 block text-sm text-gray-300">UPI QR Code Image</label><input id="worker-qr" type="file" accept="image/*" onChange={(e) => setWorkerForm((prev) => ({ ...prev, qrFile: e.target.files?.[0] || null }))} className="input-field text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500/20 file:px-3 file:py-1 file:text-brand-400" /></div>
           <div><label htmlFor="worker-password" className="mb-2 block text-sm text-gray-300">Password</label><input id="worker-password" type="password" required minLength={6} value={workerForm.password} onChange={(e) => setWorkerForm((prev) => ({ ...prev, password: e.target.value }))} className="input-field" /></div>
           <div><label htmlFor="worker-confirm-password" className="mb-2 block text-sm text-gray-300">Confirm Password</label><input id="worker-confirm-password" type="password" required value={workerForm.confirmPassword} onChange={(e) => setWorkerForm((prev) => ({ ...prev, confirmPassword: e.target.value }))} className="input-field" /></div>
           {formError ? <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">{formError}</div> : null}
           <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={closeAddModal} className="btn-secondary px-4 py-2 text-sm">Cancel</button><button type="submit" disabled={isSubmitting} className="btn-primary px-4 py-2 text-sm">{isSubmitting ? 'Adding...' : 'Add Worker'}</button></div>
+        </form>
+      </Modal>
+      <Modal isOpen={isEditModalOpen} onClose={closeEditModal} title="Edit Worker">
+        <form onSubmit={handleEditWorker} className="space-y-4">
+          <div><label htmlFor="edit-worker-name" className="mb-2 block text-sm text-gray-300">Full Name</label><input id="edit-worker-name" type="text" required value={editWorkerForm.name} onChange={(e) => setEditWorkerForm((prev) => ({ ...prev, name: e.target.value }))} className="input-field" /></div>
+          <div><label htmlFor="edit-worker-wage" className="mb-2 block text-sm text-gray-300">Daily Wage in ₹</label><input id="edit-worker-wage" type="number" min="1" required value={editWorkerForm.dailyWage} onChange={(e) => setEditWorkerForm((prev) => ({ ...prev, dailyWage: e.target.value }))} className="input-field" /></div>
+          <div><label className="mb-2 block text-sm text-gray-300">Assign to Sites</label>{renderSiteCheckboxes(editWorkerForm.siteIds, setEditWorkerForm)}</div>
+          {editFormError ? <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">{editFormError}</div> : null}
+          <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={closeEditModal} className="btn-secondary px-4 py-2 text-sm">Cancel</button><button type="submit" disabled={isEditing} className="btn-primary px-4 py-2 text-sm">{isEditing ? 'Saving...' : 'Save Changes'}</button></div>
         </form>
       </Modal>
       <Modal isOpen={Boolean(selectedWorker)} onClose={() => setSelectedWorker(null)} title={selectedWorker ? selectedWorker.name : 'Worker Details'}>
