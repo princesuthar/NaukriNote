@@ -52,16 +52,79 @@ function WorkerHomePage() {
 
   const handleLogout = async () => { try { await logoutWorker(); navigate('/worker/login', { replace: true }) } catch { setError('Logout failed.') } }
 
-  const handleRequest = async () => {
-    if (!selectedSiteId) { setError('Select a site'); return }
-    setRequesting(true); setError('')
-    try {
-      await createAttendanceRequest({ workerId: workerProfile.id, siteId: selectedSiteId, contractorId: workerProfile.contractorId, date: today() })
-      setRequestSent(true); setTodayRequested(true)
-      setTimeout(() => setRequestSent(false), 3000)
-    } catch { setError('Failed to request attendance.') }
-    finally { setRequesting(false) }
+// Haversine formula — calculates distance in metres between two GPS coordinates
+function getDistanceMetres(lat1, lng1, lat2, lng2) {
+  const R = 6371000 // Earth radius in metres
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+const handleRequest = async () => {
+  if (!selectedSiteId) { setError('Select a site'); return }
+
+  setRequesting(true)
+  setError('')
+
+  try {
+    // 1. Get the selected site's geofence data
+    const selectedSite = assignedSites.find((s) => s.id === selectedSiteId)
+
+    // 2. If geofence is set, check worker's GPS location
+    if (selectedSite?.geofence) {
+      const { lat: siteLat, lng: siteLng, radius: siteRadius } = selectedSite.geofence
+
+      // Get worker's current GPS position
+      const position = await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('GPS not supported on this device'))
+          return
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+        })
+      })
+
+      const workerLat = position.coords.latitude
+      const workerLng = position.coords.longitude
+      const distance = getDistanceMetres(workerLat, workerLng, siteLat, siteLng)
+
+      if (distance > siteRadius) {
+        setError(`You are ${Math.round(distance)}m away from the site. You must be within ${siteRadius}m to request attendance.`)
+        setRequesting(false)
+        return
+      }
+    }
+
+    // 3. All good — submit the request
+    await createAttendanceRequest({
+      workerId: workerProfile.id,
+      siteId: selectedSiteId,
+      contractorId: workerProfile.contractorId,
+      date: today(),
+      requestedAt: new Date().toISOString(),
+    })
+
+    setRequestSent(true)
+    setTodayRequested(true)
+    setTimeout(() => setRequestSent(false), 3000)
+  } catch (err) {
+    if (err.code === 1) {
+      setError('Location permission denied. Please allow location access to request attendance.')
+    } else if (err.code === 3) {
+      setError('Could not get your location. Please try again.')
+    } else {
+      setError(err.message || 'Failed to request attendance.')
+    }
+  } finally {
+    setRequesting(false)
   }
+}
 
   if (loading) return <div className="flex min-h-screen items-center justify-center bg-surface-400"><div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" /></div>
 

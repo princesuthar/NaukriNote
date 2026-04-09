@@ -72,7 +72,7 @@ function Modal({ isOpen, onClose, title, children }) {
             ✕
           </button>
         </div>
-        <div>{children}</div>
+        <div className="max-h-[75vh] overflow-y-auto pr-1">{children}</div>
       </div>
     </div>
   )

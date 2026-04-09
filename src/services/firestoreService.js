@@ -152,8 +152,8 @@ export async function getWorkerByPhone(phone) {
     }
 
     // Return the first match (phone should be unique)
-    const doc = snapshot.docs[0]
-    return { id: doc.id, ...doc.data() }
+    const workerDoc = snapshot.docs[0]
+    return { id: workerDoc.id, ...workerDoc.data() }
   } catch (error) {
     console.error('Error fetching worker by phone:', error)
     throw error

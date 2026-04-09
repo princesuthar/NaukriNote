@@ -45,7 +45,7 @@ function WorkersPage() {
     try {
       const [workersList, sitesList] = await Promise.all([getWorkersByContractor(contractorUser.uid), getSitesByContractor(contractorUser.uid)])
       const siteMap = sitesList.reduce((acc, site) => { acc[site.id] = site.name; return acc }, {})
-      const assignmentEntries = await Promise.all(workersList.map(async (worker) => { try { const assignedSites = await getSitesByWorker(worker.id); return [worker.id, { ids: assignedSites.map((a) => a.siteId), names: assignedSites.map((a) => siteMap[a.siteId]).filter(Boolean) }] } catch (error) { return [worker.id, { ids: [], names: [] }] } }))
+      const assignmentEntries = await Promise.all(workersList.map(async (worker) => { try { const assignedSites = await getSitesByWorker(worker.id); return [worker.id, { ids: assignedSites.map((a) => a.id), names: assignedSites.map((a) => siteMap[a.id]).filter(Boolean) }] } catch (error) { return [worker.id, { ids: [], names: [] }] } }))
       setWorkers(workersList); setSites(sitesList); setWorkerSiteMap(Object.fromEntries(assignmentEntries))
     } catch (error) { console.error('Failed to load workers:', error); showToast('Could not load workers', 'error') } finally { setIsLoading(false) }
   }
