@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
 import Modal from '../../components/common/Modal'
 import Toast from '../../components/common/Toast'
 import DashboardLayout from '../../components/layout/DashboardLayout'
@@ -42,10 +41,30 @@ function SitesDashboard() {
   const [formData, setFormData] = useState(initialFormState)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitError, setSubmitError] = useState('')
-
+  const [mapCenter, setMapCenter] = useState([20.5937, 78.9629]) // default India center
+  const [mapZoom, setMapZoom] = useState(5)
   // Geofence state
   const [pickedLocation, setPickedLocation] = useState(null) // { lat, lng }
   const [radius, setRadius] = useState(100) // metres
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searching, setSearching] = useState(false)
+
+  const handleLocationSearch = async () => {
+    if (!searchQuery.trim()) return
+    setSearching(true)
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchQuery)}&format=json&limit=5&countrycodes=in`
+      )
+      const data = await response.json()
+      setSearchResults(data)
+    } catch {
+      // search failed silently
+    } finally {
+      setSearching(false)
+    }
+  }
 
   const loadData = async () => {
     if (!contractorUser?.uid) return
@@ -81,12 +100,27 @@ function SitesDashboard() {
   const totalSites = sites.length
   const activeSites = useMemo(() => sites.filter((s) => String(s.status || '').toLowerCase() === 'active').length, [sites])
 
+
+
   const openAddModal = () => {
     setSubmitError('')
     setFormData(initialFormState)
     setPickedLocation(null)
     setRadius(100)
     setIsModalOpen(true)
+
+    // Auto-detect admin's location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setMapCenter([position.coords.latitude, position.coords.longitude])
+          setMapZoom(15) // zoom in close
+        },
+        () => {
+          // Permission denied or failed — keep India center
+        }
+      )
+    }
   }
 
   const handleAddSite = async (event) => {
@@ -201,9 +235,53 @@ function SitesDashboard() {
             <p className="mb-2 text-xs text-gray-500">Click anywhere on the map to drop a pin</p>
             {/* Map container needs an explicit height */}
             <div style={{ height: '260px', borderRadius: '12px', overflow: 'hidden' }}>
+              {/* Location Search */}
+                    <div className="mb-2 flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Search location... e.g. Bhayander, Mumbai"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()}
+                        className="input-field flex-1 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleLocationSearch}
+                        disabled={searching}
+                        className="btn-secondary px-3 py-2 text-sm"
+                      >
+                        {searching ? '...' : '🔍'}
+                      </button>
+                    </div>
+
+                    {/* Search Results Dropdown */}
+                    {searchResults.length > 0 && (
+                      <div className="mb-2 rounded-xl border border-white/10 bg-surface-400 text-sm overflow-hidden">
+                        {searchResults.map((result) => (
+                          <button
+                            key={result.place_id}
+                            type="button"
+                            onClick={() => {
+                              const lat = parseFloat(result.lat)
+                              const lng = parseFloat(result.lon)
+                              setMapCenter([lat, lng])
+                              setMapZoom(16)
+                              setPickedLocation({ lat, lng })
+                              setSearchResults([]) // close dropdown
+                              setSearchQuery(result.display_name.split(',')[0]) // show short name
+                            }}
+                            className="block w-full px-3 py-2 text-left text-gray-300 hover:bg-white/10 border-b border-white/5 last:border-0"
+                          >
+                            📍 {result.display_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
               <MapContainer
-                center={[20.5937, 78.9629]} // India centre
-                zoom={5}
+                center={mapCenter}
+                zoom={mapZoom}
+                key={`${mapCenter[0]}-${mapCenter[1]}`} // forces re-center when location changes
                 style={{ height: '100%', width: '100%' }}
               >
                 <TileLayer
