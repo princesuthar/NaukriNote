@@ -93,14 +93,14 @@ NaukriNote/
 │   │   │   └── SignupPage.jsx     # Contractor registration
 │   │   │
 │   │   ├── contractor/            # Contractor dashboard pages
-│   │   │   ├── SitesDashboard.jsx # Sites overview + stats
+│   │   │   ├── SitesDashboard.jsx # Sites overview + stats + map geofencing
 │   │   │   ├── WorkersPage.jsx    # Worker CRUD + assignments
 │   │   │   ├── PayrollPage.jsx    # Payroll calculations + payments
 │   │   │   └── AttendancePage.jsx # Attendance marking + requests
 │   │   │
 │   │   └── worker/                # Worker-facing pages
 │   │       ├── WorkerLoginPage.jsx # Worker phone login
-│   │       └── WorkerHomePage.jsx  # Worker dashboard
+│   │       └── WorkerHomePage.jsx  # Worker dashboard + geofence attendance
 │   │
 │   ├── routes/
 │   │   ├── AppRoutes.jsx          # Route definitions
@@ -149,7 +149,36 @@ WorkerLoginPage → AuthContext.loginWorker(phone, password)
   → Navigate to /worker/home
 ```
 
-### 3.3 Attendance Request Flow
+### 3.3 Site Geofence Setup Flow (Contractor)
+```
+SitesDashboard → openAddModal():
+  → MapContainer renders with LocationPicker component
+  → LocationPicker listens to map click events
+  → Contractor clicks map → picks location (lat, lng)
+  → Sets geofence radius (default: 100m)
+  → addSite({...data, geofence: {lat, lng, radius}})
+  → Firestore stores site with geofence data
+```
+
+### 3.4 Geofence Attendance Check Flow (Worker)
+```
+WorkerHomePage → handleRequest():
+  → Get selectedSite from assignedSites
+  → If site.geofence exists:
+    → Check browser geolocation permission
+    → navigator.geolocation.getCurrentPosition()
+    → Get worker's {latitude, longitude}
+    → Calculate distance using Haversine formula
+    → If distance > radius:
+      → Show error: "You are {X}m away from site. Must be within {radius}m"
+      → Block attendance request
+    → Else:
+      → Allow createAttendanceRequest()
+  → Else (no geofence set):
+    → Allow attendance request without location check
+```
+
+### 3.5 Attendance Request Flow
 ```
 Worker (WorkerHomePage):
   → createAttendanceRequest({workerId, siteId, contractorId, date})
@@ -162,7 +191,7 @@ Contractor (AttendancePage):
   → If approved: markAttendance({...data, status: 'present'})
 ```
 
-### 3.4 Payroll Calculation Flow
+### 3.6 Payroll Calculation Flow
 ```
 PayrollPage → calculatePendingWages(workerId):
   → Fetch attendance where status === 'present' → count presentDays

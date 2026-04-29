@@ -21,6 +21,8 @@ Frontend:
 - Vite 8
 - React Router DOM 7
 - Tailwind CSS + custom glassmorphism utility layer
+- Leaflet + React Leaflet (mapping & geofencing)
+- Geolocation API (browser GPS)
 
 Backend services:
 - Firebase Authentication (email/password; workers use synthetic email derived from phone)
@@ -66,17 +68,22 @@ Application code map:
 
 ### 4.1 Contractor flow
 1. Contractor signs up or logs in using email/password.
-2. Contractor enters dashboard and creates sites.
-3. Contractor adds workers with daily wage, optional UPI QR image, and password.
-4. Contractor assigns workers to one or more sites.
-5. Contractor marks attendance or approves worker attendance requests.
-6. Contractor records payroll payments and tracks pending dues.
+2. Contractor enters dashboard and creates sites with geofence boundaries (using Leaflet map).
+3. Contractor sets site GPS coordinates and geofence radius (default: 100m).
+4. Contractor adds workers with daily wage, optional UPI QR image, and password.
+5. Contractor assigns workers to one or more sites.
+6. Contractor marks attendance or approves worker attendance requests.
+7. Contractor records payroll payments and tracks pending dues.
 
 ### 4.2 Worker flow
 1. Worker logs in with phone + password.
 2. Worker opens worker home screen.
-3. Worker requests attendance for selected assigned site/date.
-4. Worker sees attendance history and earnings summary.
+3. Worker selects assigned site for attendance.
+4. If site has geofence: Worker's GPS location is checked (Haversine distance calculation).
+   - If worker is within geofence radius: attendance request allowed.
+   - If worker is outside radius: error shown with distance to site.
+5. Worker requests attendance for selected assigned site/date.
+6. Worker sees attendance history and earnings summary.
 
 ---
 
@@ -108,7 +115,7 @@ Route guards:
 
 Firestore collections:
 - contractors: contractor profile (doc id is auth uid)
-- sites: site metadata with contractorId ownership
+- sites: site metadata with contractorId ownership + geofence data (lat, lng, radius)
 - workers: worker profile with contractorId, phone, wage, authUid, optional upiQrUrl
 - site_workers: worker-site assignment junction table
 - attendance: daily worker attendance status per site
@@ -172,6 +179,34 @@ Implementation details:
 - Layout components provide consistent structure:
   - PublicNavbar for marketing/public pages
   - DashboardLayout for contractor shell with sidebar
+
+---
+
+## 9.5 Geofencing Implementation
+
+**Location Service Components**:
+- SitesDashboard.jsx: Leaflet MapContainer for picking site locations
+- LocationPicker: Inner component that listens to map clicks
+- Nominatim geocoding for location search
+- Leaflet markers and circles for visual geofence representation
+
+**Worker Attendance Geofence Check**:
+- WorkerHomePage.jsx: handleRequest() function
+- W3C Geolocation API for GPS coordinates (requires browser permission)
+- Haversine formula for distance calculation (O(1) complexity)
+- Real-time distance feedback showing how far worker is from site
+- Graceful fallback if geofence not set on site
+
+**Database Storage**:
+- sites.geofence object: {lat, lng, radius}
+- Radius in metres (default 100m, typical construction site size)
+- Optional field (backward compatible with non-geofenced sites)
+
+**Security Considerations**:
+- GPS is checked on client (worker could spoof location)
+- Production use should validate with server-side verification
+- Requires HTTPS for Geolocation API
+- Requires explicit user permission to access location
 
 ---
 

@@ -27,7 +27,7 @@ Stores contractor (manager) profile data. Document ID = Firebase Auth UID.
 
 ### 2.2 `sites`
 
-Stores construction site information.
+Stores construction site information with optional geofencing data.
 
 | Field | Type | Description | Example |
 |-------|------|-------------|---------|
@@ -36,7 +36,13 @@ Stores construction site information.
 | `location` | string | Physical location | `"Andheri West, Mumbai"` |
 | `description` | string | Optional notes | `"20-floor residential"` |
 | `status` | string | Active/Inactive | `"Active"` |
+| `geofence` | object | Geofence boundary data (lat, lng, radius) | `{"lat": 19.0844, "lng": 72.8846, "radius": 100}` |
 | `createdAt` | timestamp | Creation time | `2025-03-15T10:30:00Z` |
+
+**Geofence Object Structure**:
+- `lat` (number): Latitude of site center point
+- `lng` (number): Longitude of site center point  
+- `radius` (number): Geofence radius in metres (default: 100m)
 
 **Relationships**: One site → Many workers (via `site_workers`)
 

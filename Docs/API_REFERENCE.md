@@ -170,9 +170,95 @@ POST https://api.cloudinary.com/v1_1/dcvilamrq/image/upload
 
 ---
 
-## 4. Real-Time Features
+## 4. Geolocation and Mapping API
 
-### 4.1 Attendance Request Subscription
+### 4.1 W3C Geolocation API
+Browser-native API for acquiring worker's GPS coordinates.
+
+```javascript
+navigator.geolocation.getCurrentPosition(
+  (position) => {
+    const { latitude, longitude, accuracy } = position.coords
+  },
+  (error) => {
+    // error.code: 1 (permission denied), 2 (position unavailable), 3 (timeout)
+  },
+  {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  }
+)
+```
+
+**Browser Support**: Desktop (Chrome, Firefox, Safari), Mobile (iOS Safari, Chrome, Firefox)
+**Security**: Requires HTTPS and user permission
+
+### 4.2 Nominatim OpenStreetMap Geocoding
+Free reverse geocoding service for location search (contractor dashboard).
+
+```
+GET https://nominatim.openstreetmap.org/search
+Parameters:
+  - q: search query (e.g., "Mumbai")
+  - format: "json"
+  - limit: number of results (default 10)
+  - countrycodes: "in" (filter to India)
+
+Response:
+[
+  {
+    "lat": "19.0760",
+    "lon": "72.8777",
+    "display_name": "Mumbai, Maharashtra, India",
+    "importance": 0.85
+  }
+]
+```
+
+**Rate Limit**: 1 request per second (polite usage)
+**Cost**: Free (no API key required)
+
+### 4.3 Leaflet Map Rendering
+Interactive map library for displaying and picking site locations.
+
+```javascript
+import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet'
+
+// Usage in SitesDashboard:
+<MapContainer center={[20.5937, 78.9629]} zoom={5} scrollWheelZoom={false}>
+  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+  <Marker position={selectedLocation} />
+  <Circle center={selectedLocation} radius={radiusInMetres} />
+  <LocationPicker onSelect={handleLocationPick} />
+</MapContainer>
+```
+
+**Tile Provider**: OpenStreetMap (free)
+**Features**: Pan, zoom, click-to-place markers, circles for radius visualization
+
+### 4.4 Haversine Distance Calculation
+Client-side distance calculation between worker GPS and site geofence center (WorkerHomePage).
+
+```javascript
+function getDistanceMetres(lat1, lng1, lat2, lng2) {
+  const R = 6371000 // Earth radius in metres
+  const toRad = (deg) => (deg * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+}
+```
+
+**Accuracy**: ±0.5m for typical use case
+**Complexity**: O(1) - constant time calculation
+
+---
+
+## 5. Real-Time Features
+
+### 5.1 Attendance Request Subscription
 The attendance page uses Firestore `onSnapshot()` for real-time updates:
 
 ```javascript

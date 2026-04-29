@@ -28,6 +28,7 @@ Construction contractors in India face critical operational challenges:
 
 ### 3.1 Contractor Features (Manager Portal)
 - **Multi-Site Management** — Create and manage multiple construction sites from one dashboard
+- **Site Geofencing** — Set GPS coordinates and radius for each site location
 - **Worker Management** — Add workers with daily wage, phone number, and UPI QR code
 - **Site-Worker Assignment** — Assign workers to specific sites (many-to-many)
 - **Attendance Marking** — Mark daily attendance per site and date (Present/Absent)
@@ -38,6 +39,7 @@ Construction contractors in India face critical operational challenges:
 
 ### 3.2 Worker Features (Worker Portal)
 - **Phone-based Login** — Workers log in using their 10-digit phone number
+- **Geofence-Protected Attendance** — Workers must be within site geofence radius to request attendance
 - **Attendance Request** — Workers can request attendance from their mobile device
 - **Attendance History** — View all past attendance records
 - **Earnings Dashboard** — See total earned, total paid, and pending wages

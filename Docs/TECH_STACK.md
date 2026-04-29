@@ -9,6 +9,8 @@
 | **React Router DOM** | 7.13.1 | Client-side routing & navigation | 100% of navigation |
 | **Vite** | 8.0.1 | Build tool & dev server | 100% of build pipeline |
 | **TailwindCSS** | 3.4.19 | Utility-first CSS framework | 100% of styling |
+| **Leaflet** | 1.9.4 | Mapping library for geofencing | 10% (SitesDashboard) |
+| **React Leaflet** | 4.2.1 | React wrapper for Leaflet | 10% (SitesDashboard) |
 
 ### React Hooks Used
 | Hook | Usage |
@@ -21,6 +23,7 @@
 | `useSearchParams` | URL query parameter access in WorkersPage |
 | `useNavigate` | Programmatic navigation |
 | `useLocation` | Active route detection in navbar |
+| `useMapEvents` | Leaflet map interaction (LocationPicker in SitesDashboard) |
 
 ---
 
@@ -42,6 +45,27 @@
 - **Upload Preset**: `NokriNote_qr` (unsigned)
 - **API Endpoint**: `https://api.cloudinary.com/v1_1/{cloud_name}/image/upload`
 - **Format**: Accepts `image/*`, returns `secure_url`
+
+### Geofencing Configuration
+
+#### Leaflet & React Leaflet
+- **Map Library**: Leaflet (free, open-source)
+- **React Integration**: react-leaflet for component-based map management
+- **Tile Provider**: OpenStreetMap (default)
+- **Fixed Marker Icons**: Custom icon URLs configured to work with Vite bundler
+
+#### Geolocation API
+- **Source**: W3C Geolocation API (browser native)
+- **Usage**: Retrieves worker's GPS coordinates
+- **Options**: High accuracy, 10-second timeout
+- **Fallback**: Graceful degradation if location unavailable
+
+#### Nominatim Geocoding
+- **Service**: OpenStreetMap Nominatim (free reverse geocoding)
+- **Endpoint**: `https://nominatim.openstreetmap.org/search`
+- **Rate Limit**: Reasonable use (1 request/second recommended)
+- **Parameters**: Query string + format JSON + countrycodes=in (India filter)
+- **Response**: Lat/lng coordinates for location search results
 
 ---
 

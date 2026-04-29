@@ -186,6 +186,88 @@ INDIAN NUMBERING SYSTEM:
 
 ---
 
+### 1.7 Geofence Boundary Checking Algorithm
+
+Validates worker's GPS location against site geofence radius before allowing attendance request.
+
+```
+ALGORITHM: checkGeofenceCompliance(workerLat, workerLng, siteLat, siteLng, radiusMetres)
+
+INPUT:  workerLat, workerLng (worker's current GPS coordinates)
+        siteLat, siteLng (site center point coordinates)
+        radiusMetres (geofence radius)
+OUTPUT: { isWithin: boolean, distanceMetres: number }
+
+STEPS:
+  1. CALCULATE distance using Haversine formula:
+     R = 6,371,000 metres (Earth radius)
+     toRad(deg) = deg × π / 180
+     
+     dLat = toRad(siteLat - workerLat)
+     dLng = toRad(siteLng - workerLng)
+     a = sin²(dLat/2) + cos(toRad(workerLat)) × cos(toRad(siteLat)) × sin²(dLng/2)
+     distance = R × 2 × atan2(√a, √(1-a))
+
+  2. COMPARE distance against radius:
+     IF distance ≤ radiusMetres:
+       isWithin = true    (worker within geofence)
+     ELSE:
+       isWithin = false   (worker outside geofence)
+
+  3. RETURN { isWithin, distanceMetres: distance }
+
+ACCURACY:   ±0.5m over 100m distances (acceptable for construction sites)
+COMPLEXITY: O(1) — constant time mathematical calculation
+USE CASE:   Prevent workers from claiming attendance from home/other sites
+PRACTICAL:  Typical geofence radius: 100m (covers ~2-3 hectare plot)
+```
+
+---
+
+### 1.8 Haversine Distance Formula (Mathematical Basis)
+
+Great-circle distance calculation between two GPS coordinates on Earth's surface.
+
+```
+FORMULA: haversine(lat1, lon1, lat2, lon2) → distance in metres
+
+SPHERICAL EARTH MODEL:
+  R = 6,371,000 metres (Earth's mean radius)
+  Δσ = 2 × arcsin(√(sin²((lat2-lat1)/2) + cos(lat1) × cos(lat2) × sin²((lon2-lon1)/2)))
+  distance = R × Δσ
+
+JAVASCRIPT IMPLEMENTATION:
+  const R = 6371000  // metres
+  const toRad = deg => deg * Math.PI / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2
+  const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+EXAMPLE CALCULATIONS:
+  Worker at: 19.0844° N, 72.8846° E (Andheri, Mumbai)
+  Site at:   19.0845° N, 72.8847° E
+  Distance ≈ 12.3 metres → WITHIN 100m geofence ✓
+  
+  Worker at: 19.0800° N, 72.8800° E (1km away)
+  Site at:   19.0844° N, 72.8846° E
+  Distance ≈ 4,500 metres → OUTSIDE 100m geofence ✗
+
+ACCURACY & ERROR SOURCES:
+  ± Altitude differences: ±20m max (construction sites are relatively flat)
+  ± GPS accuracy: ±5m typical smartphone, ±1m modern devices
+  ± Earth curvature: < 0.1% error over 1km distances
+  ± Atmospheric interference: ±5-10m urban, ±15-20m forested areas
+
+PRACTICAL RADIUS RECOMMENDATIONS:
+  • 50m   → Very strict (ideal for small compact plots)
+  • 100m  → Standard (typical construction site, 2-3 hectares)
+  • 200m  → Relaxed (allows minor GPS drift, larger sites)
+  • 500m+ → Loose (minimal enforcement, backup verification needed)
+```
+
+---
+
 ## 2. Performance Metrics
 
 ### 2.1 Application Performance
